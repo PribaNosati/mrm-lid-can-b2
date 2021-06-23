@@ -7,7 +7,8 @@
 @param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 @param maxNumberOfBoards - maximum number of boards
 */
-Mrm_lid_can_b2::Mrm_lid_can_b2(Robot* robot, uint8_t maxNumberOfBoards) : SensorBoard(robot, 1, "Lid4m", maxNumberOfBoards, ID_MRM_LID_CAN_B2) {
+Mrm_lid_can_b2::Mrm_lid_can_b2(Robot* robot, uint8_t maxNumberOfBoards) : 
+	SensorBoard(robot, 1, "Lid4m", maxNumberOfBoards, ID_MRM_LID_CAN_B2, 1) {
 	readings = new std::vector<uint16_t>(maxNumberOfBoards);
 }
 
@@ -88,6 +89,20 @@ void Mrm_lid_can_b2::defaults(uint8_t deviceNumber) {
 	roi(deviceNumber);
 }
 
+/** Analog readings
+@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+@return - analog value
+*/
+uint16_t Mrm_lid_can_b2::distance(uint8_t deviceNumber){
+	if (deviceNumber >= nextFree) {
+		strcpy(errorMessage, "mrm-lid-can-b2 doesn't exist");
+		return 0;
+	}
+	if (started(deviceNumber))
+		return (*readings)[deviceNumber] == 0 ? 2000 : (*readings)[deviceNumber];
+	else
+		return 0;
+}
 
 /** Distance mode. Short mode has better ambient light immunity but the maximum distance is limited to 1.3 m. Long distance ranges up to
 	4 m but is less performant under ambient light. Stored in sensors non-volatile memory. Allow 50 ms for flash to be written.
@@ -145,11 +160,11 @@ bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
 				}
 				break;
 				case COMMAND_INFO_SENDING_1:
-					print("%s: %s dist., budget %i ms, %ix%i, intermeas. %i ms\n\r", name(deviceNumber), data[1] ? "short" : "long", data[2] | (data[3] << 8),
+					robotContainer->print("%s: %s dist., budget %i ms, %ix%i, intermeas. %i ms\n\r", name(deviceNumber), data[1] ? "short" : "long", data[2] | (data[3] << 8),
 						data[4] & 0xFF, data[5] & 0xFF, data[6] | (data[7] << 8));
 					break;
 				default:
-					print("Unknown command. ");
+					robotContainer->print("Unknown command. ");
 					messagePrint(canId, 8, data, false);
 					errorCode = 202;
 					errorInDeviceNumber = deviceNumber;
@@ -160,31 +175,23 @@ bool Mrm_lid_can_b2::messageDecode(uint32_t canId, uint8_t data[8]){
 	return false;
 }
 
-
 /** Analog readings
+@param receiverNumberInSensor - always 0
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 @return - analog value
 */
-uint16_t Mrm_lid_can_b2::reading(uint8_t deviceNumber){
-	if (deviceNumber >= nextFree) {
-		strcpy(errorMessage, "mrm-lid-can-b2 doesn't exist");
-		return 0;
-	}
-	if (started(deviceNumber))
-		return (*readings)[deviceNumber] == 0 ? 2000 : (*readings)[deviceNumber];
-	else
-		return 0;
+uint16_t Mrm_lid_can_b2::reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber){
+	return distance(deviceNumber);
 }
 
 /** Print all readings in a line
 */
 void Mrm_lid_can_b2::readingsPrint() {
-	print("Lid4m:");
+	robotContainer->print("Lid4m:");
 	for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++)
 		if (alive(deviceNumber))
-			print(" %4i", reading(deviceNumber));
+			robotContainer->print(" %4i", distance(deviceNumber));
 }
-
 
 /** ROI, region of interest, a matrix from 4x4 up to 16x16 (x, y). Smaller x and y - smaller view angle. Stored in sensors non-volatile memory.
 Allow 50 ms for flash to be written.
@@ -212,14 +219,14 @@ void Mrm_lid_can_b2::roi(uint8_t deviceNumber, uint8_t x, uint8_t y) {
 */
 bool Mrm_lid_can_b2::started(uint8_t deviceNumber) {
 	if (millis() - (*_lastReadingMs)[deviceNumber] > MRM_LID_CAN_B2_INACTIVITY_ALLOWED_MS || (*_lastReadingMs)[deviceNumber] == 0) {
-		//print("Start mrm-lid-can-b2%i \n\r", deviceNumber);
+		//robotContainer->print("Start mrm-lid-can-b2%i \n\r", deviceNumber);
 		for (uint8_t i = 0; i < 8; i++) { // 8 tries
 			start(deviceNumber, 0);
 			// Wait for 1. message.
 			uint32_t startMs = millis();
 			while (millis() - startMs < 50) {
 				if (millis() - (*_lastReadingMs)[deviceNumber] < 100) {
-					//print("Lidar confirmed\n\r"); 
+					//robotContainer->print("Lidar confirmed\n\r"); 
 					return true;
 				}
 				robotContainer->delayMs(1);
@@ -244,13 +251,13 @@ void Mrm_lid_can_b2::test()
 		for (uint8_t deviceNumber = 0; deviceNumber < nextFree; deviceNumber++) {
 			if (alive(deviceNumber)) {
 				if (pass++)
-					print(" ");
-				print("%i ", reading(deviceNumber));
+					robotContainer->print(" ");
+				robotContainer->print("%i ", distance(deviceNumber));
 			}
 		}
 		lastMs = millis();
 		if (pass)
-			print("\n\r");
+			robotContainer->print("\n\r");
 	}
 }
 

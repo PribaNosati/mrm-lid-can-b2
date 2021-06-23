@@ -88,6 +88,12 @@ public:
 	*/
 	void defaults(uint8_t deviceNumber = 0xFF);
 
+	/** Distance in mm
+	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@return - distance in mm
+	*/
+	uint16_t distance(uint8_t deviceNumber = 0);
+
 	/** Distance mode. Short mode has better ambient light immunity but the maximum distance is limited to 1.3 m. Long distance ranges up to 
 		4 m but is less performant under ambient light. Stored in sensors non-volatile memory. Allow 50 ms for flash to be written.
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
@@ -109,11 +115,11 @@ public:
 	bool messageDecode(uint32_t canId, uint8_t data[8]);
 
 	/** Analog readings
-	@param receiverNumberInSensor - single IR transistor in mrm-ref-can
+	@param receiverNumberInSensor - always 0
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - analog value
 	*/
-	uint16_t reading(uint8_t deviceNumber = 0);
+	uint16_t reading(uint8_t receiverNumberInSensor, uint8_t deviceNumber = 0);
 
 	/** Print all readings in a line
 	*/
