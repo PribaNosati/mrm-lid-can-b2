@@ -89,17 +89,46 @@ void Mrm_lid_can_b2::defaults(uint8_t deviceNumber) {
 	roi(deviceNumber);
 }
 
-/** Analog readings
+/** Distance in mm. Warning - the function will take considerable amount of time to execute if sampleCount > 0!
 @param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-@return - analog value
+@param sampleCount - Number or readings. 40% of the raeadings, with extreme values, will be discarded and the
+				rest will be averaged. Keeps returning 0 till all the sample is read.
+				If sampleCount is 0, it will not wait but will just return the last value.
+@param sigmaCount - Values outiside sigmaCount sigmas will be filtered out. 1 sigma will leave 68% of the values, 2 sigma 95%, 3 sigma 99.7%.
+				Therefore, lower sigma number will remove more errornous readings.
+@return - distance in mm
 */
-uint16_t Mrm_lid_can_b2::distance(uint8_t deviceNumber){
+uint16_t Mrm_lid_can_b2::distance(uint8_t deviceNumber, uint8_t sampleCount, uint8_t sigmaCount){
+	const uint16_t TIMEOUT = 3000;
 	if (deviceNumber >= nextFree) {
 		strcpy(errorMessage, "mrm-lid-can-b2 doesn't exist");
 		return 0;
 	}
 	if (started(deviceNumber))
-		return (*readings)[deviceNumber] == 0 ? 2000 : (*readings)[deviceNumber];
+		if (sampleCount == 0)
+			return (*readings)[deviceNumber] == 0 ? 4000 : (*readings)[deviceNumber];
+		else{
+			uint16_t rds[sampleCount];
+			for (uint8_t i = 0; i < sampleCount; i++){
+				(*readings)[deviceNumber] = 0;
+				uint32_t ms = millis();
+				while ((*readings)[deviceNumber] == 0){
+					robotContainer->noLoopWithoutThis();
+					if (millis() - ms > TIMEOUT){
+						errorCode = 73;
+						break;
+					}
+				}
+				rds[i] = (*readings)[deviceNumber];
+				//robotContainer->print("Reading %i\n\r", (*readings)[deviceNumber]);
+			}
+
+			// Average and standard deviation
+			float mean;
+			float sd = stardardDeviation(sampleCount, rds, &mean);
+
+			return outlierlessAverage(sampleCount, rds, mean, sigmaCount, sd);
+		}
 	else
 		return 0;
 }

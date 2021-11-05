@@ -88,11 +88,16 @@ public:
 	*/
 	void defaults(uint8_t deviceNumber = 0xFF);
 
-	/** Distance in mm
+	/** Distance in mm. Warning - the function will take considerable amount of time to execute if sampleCount > 0!
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
+	@param sampleCount - Number or readings. 40% of the raeadings, with extreme values, will be discarded and the
+					rest will be averaged. Keeps returning 0 till all the sample is read.
+					If sampleCount is 0, it will not wait but will just return the last value.
+	@param sigmaCount - Values outiside sigmaCount sigmas will be filtered out. 1 sigma will leave 68% of the values, 2 sigma 95%, 3 sigma 99.7%.
+					Therefore, lower sigma number will remove more errornous readings.
 	@return - distance in mm
 	*/
-	uint16_t distance(uint8_t deviceNumber = 0);
+	uint16_t distance(uint8_t deviceNumber, uint8_t sampleCount = 0, uint8_t sigmaCount = 1);
 
 	/** Distance mode. Short mode has better ambient light immunity but the maximum distance is limited to 1.3 m. Long distance ranges up to 
 		4 m but is less performant under ambient light. Stored in sensors non-volatile memory. Allow 50 ms for flash to be written.
