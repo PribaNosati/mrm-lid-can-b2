@@ -45,8 +45,6 @@ Licence: You can use this code any way you like.
 
 //CANBus commands
 #define COMMAND_LID_CAN_B2_CALIBRATE 0x05
-#define COMMAND_LID_CAN_B2_PNP_ENABLE 0x28
-#define COMMAND_LID_CAN_B2_PNP_DISABLE 0x29
 #define COMMAND_LID_CAN_B2_DISTANCE_MODE 0x50
 #define COMMAND_LID_CAN_B2_TIMING_BUDGET 0x51
 #define COMMAND_LID_CAN_B2_MEASUREMENT_TIME 0x52
@@ -120,7 +118,7 @@ public:
 	@param data - 8 bytes from CAN Bus message.
 	@param length - number of data bytes
 	*/
-	bool messageDecode(uint32_t canId, uint8_t data[8], uint8_t length);
+	bool messageDecode(uint32_t canId, uint8_t data[8], uint8_t dlc = 8);
 
 	/** Enable plug and play
 	@param enable - enable or disable
