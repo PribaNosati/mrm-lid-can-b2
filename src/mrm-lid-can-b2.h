@@ -1,6 +1,8 @@
 #pragma once
 #include "Arduino.h"
+#include <Interfaces.h>
 #include <mrm-board.h>
+#include <map>
 
 /**
 Purpose: mrm-lid-can-b2 interface to CANBus.
@@ -52,7 +54,7 @@ Licence: You can use this code any way you like.
 
 #define MRM_LID_CAN_B2_INACTIVITY_ALLOWED_MS 10000
 
-class Mrm_lid_can_b2 : public SensorBoard
+class Mrm_lid_can_b2 : public SensorBoard, public DistanceInterface
 {
 	std::vector<uint16_t>* readings; // Analog readings of all sensors
 
@@ -60,16 +62,17 @@ class Mrm_lid_can_b2 : public SensorBoard
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	@return - started or not
 	*/
-	bool started(uint8_t deviceNumber);
+	bool started(Device& device);
 	
 public:
+	static std::map<int, std::string> *commandNamesSpecific;
 
 	/** Constructor
 	@param robot - robot containing this board
 	@param esp32CANBusSingleton - a single instance of CAN Bus common library for all CAN Bus peripherals.
 	@param hardwareSerial - Serial, Serial1, Serial2,... - an optional serial port, for example for Bluetooth communication
 	*/
-	Mrm_lid_can_b2(Robot* robot = NULL, uint8_t maxDevices = 12);
+	Mrm_lid_can_b2(uint8_t maxDevices = 12);
 
 	~Mrm_lid_can_b2();
 
@@ -81,8 +84,10 @@ public:
 	/** Calibration, only once after production
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
 	*/
-	void calibration(uint8_t deviceNumber = 0);
+	void calibration(Device * device = nullptr);
 
+	std::string commandName(uint8_t byte);
+	
 	/** Reset sensor's non-volatile memory to defaults (distance mode, timing budget, region of interest, and measurement time, but leaves CAN Bus id intact
 	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0. 0xFF - resets all.
 	*/
@@ -118,13 +123,10 @@ public:
 	@param data - 8 bytes from CAN Bus message.
 	@param length - number of data bytes
 	*/
-	bool messageDecode(uint32_t canId, uint8_t data[8], uint8_t dlc = 8);
+	bool messageDecode(CANMessage& message);
 
-	/** Enable plug and play
-	@param enable - enable or disable
-	@param deviceNumber - Device's ordinal number. Each call of function add() assigns a increasing number to the device, starting with 0.
-	*/
-	void pnpSet(bool enable = true, uint8_t deviceNumber = 0);
+	void rangingType(Device * device = nullptr, uint8_t value = 0) {print("Not implemented");exit(1);};
+
 
 	/** Analog readings
 	@param receiverNumberInSensor - always 0
@@ -147,7 +149,7 @@ public:
 
 	/**Test
 	*/
-	void test();
+	void test(uint16_t betweenTestsMs = 0);
 
 	/** Timing budget (TB) in ms. TB improves the measurement reliability but increases power consumption. Stored in sensors non-volatile memory.
 			Set before measurement time as measurement time checks this value and returns error if not appropriate. Allow 50 ms for flash to be written.

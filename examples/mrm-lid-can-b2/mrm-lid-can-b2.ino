@@ -20,7 +20,7 @@ void setup() {
 }
 
 void loop() {
-  CANBusMessage* msg = can.messageReceive();                            // Receive a message
+  CANMessage* msg = can.messageReceive();                            // Receive a message
   if (msg != NULL && msg->data[0] == COMMAND_SENSORS_MEASURE_SENDING){  // If not NULL, a message received. Also check the command to see if the payload is a reading.
     uint16_t mm = (msg->data[2] << 8) | msg->data[1];                   // Reconstruct milimmeters.
     Serial.print(mm);
